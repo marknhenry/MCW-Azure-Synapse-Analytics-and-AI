@@ -1742,7 +1742,29 @@ Using Azure Synapse Analytics, data scientists are no longer required to use sep
 
 In this exercise, you will create multiple machine learning models. You will learn how to consume these models in your notebook. You will also deploy a model as a web service to Azure Container Instances and consume the service.
 
-### Task 1: Create a SQL Datastore and source Dataset: Portal
+### Task 1: Create an intermediary dataset in the Data Lake
+
+1. Open Azure Storage Explorer, navigate to **asadatalake{{suffix}}**, navigate to staging, create a new folder called **ForML**
+2. Open the Synapse portal
+3. Navigate to Integrate, click the + and add new Pipeline
+4. Drag the Copy Data component to the canvas: 
+- Pipeline Name: ExtractForAutoML
+- Source tab: 
+    - Source Dataset: asamcw_sale_asa
+    - Use query: Query
+    - Query: 
+```sql
+SELECT P.ProductId,P.Seasonality,S.TransactionDateId,COUNT(*) as TransactionItemsCount
+FROM wwi_mcw.SaleSmall S
+JOIN wwi_mcw.Product P ON S.ProductId = P.ProductId
+where TransactionDateId between 20190101 and 20191231
+GROUP BY P.ProductId ,P.Seasonality,S.TransactionDateId
+```
+- Sink: 
+    - Sink Dataset: ExportForML
+
+
+### Task 2: Create a SQL Datastore and source Dataset: Portal
 
 1. Open the lab resource group, locate and open the **amlworkspace{{suffix}}** Machine Learning resource.
 
@@ -1762,16 +1784,16 @@ In this exercise, you will create multiple machine learning models. You will lea
 
     | Field | Value |
     |--------------|---------------|
-    | New datastore (name) | sqlpool01 |
-    | Datastore type | Azure SQL database |
+    | New datastore (name) | stgdatalake |
+    | Datastore type | Azure Data Lake Storage Gen2 |
     | Account selection method | From Azure subscription |
     | Subscription ID | Select the lab subscription. |
-    | Server name / database name  | Select asaworkspace{{suffix}}/SQLPool01. |
-    | Authentication type | SQL authentication |
-    | User ID | asa.sql.admin |
-    | Password | The SQL Admin password you chose when deploying the lab resources. |
+    | Store name  | Select asadatalake{{suffix}}. |
+    | Azure Data Lake Gen2 file system name | staging. |
+    | Save credentials with the datastore for data access | No. |
+    | Use workspace managed identity for data preview and profiling in Azure Machine Learning studio | No. |
 
-    ![The new datastore blade is shown populated with the preceding values.](media/amlstudio_sqlpooldatasource.png "New datastore blade")
+    <!-- ![The new datastore blade is shown populated with the preceding values.](media/amlstudio_sqlpooldatasource.png "New datastore blade") -->
 
 6. From the left menu, select **Datasets**, and with the **Registered datasets** tab selected, expand the **+ Create dataset** button and select **From datastore**.
 
@@ -1781,21 +1803,11 @@ In this exercise, you will create multiple machine learning models. You will lea
 
     ![The basic info form is displayed populated with the preceding values.](media/createdataset_basicinfo.png "Dataset basic info form")
 
-8. On the **Datastore selection** form, select **Previously created datasource**, choose **sqlpool01** from the list and select the **Select datastore** button.
+8. On the **Datastore selection** form, under **Select or create a datasource**, choose **stgdatalake** from the list.  
 
-    ![The Datastore selection form is displayed as described above.](media/amldatasetselectdatasource.png "The Datastore selection form")
+    <!-- ![The Datastore selection form is displayed as described above.](media/amldatasetselectdatasource.png "The Datastore selection form") -->
 
-9. In the next **Datastore selection** form, enter the following **SQL query**. Then expand the **Advanced settings** and enter **100** for the **Query timeout (seconds)** value. Select **Next**:
-
-    ```sql
-    SELECT P.ProductId,P.Seasonality,S.TransactionDateId,COUNT(*) as TransactionItemsCount
-    FROM wwi_mcw.SaleSmall S
-    JOIN wwi_mcw.Product P ON S.ProductId = P.ProductId
-    where TransactionDateId between 20190101 and 20191231
-    GROUP BY P.ProductId ,P.Seasonality,S.TransactionDateId
-    ```
-
-    ![The datastore selection form is displayed populated with the preceding query.](media/aml_dataset_datastoreselectionquery.png "Dataset query details")
+9. In the Path select **Browse** and browse to **forML** that you created previously.  Click Next.  
 
 10. The **Settings and preview** data table will be displayed after a few moments. Review this data, then select the **Next** button.
 
